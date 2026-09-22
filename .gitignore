@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.egg-info/
+dist/
+build/
+runtime/
+*.pem
+*.key
+pairing.png
+pairing.txt
+runtime-*.log
+*.p12
+*.jks
+android-app/.kotlin/

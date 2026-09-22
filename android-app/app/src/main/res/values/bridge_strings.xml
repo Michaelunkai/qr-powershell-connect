@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ongoing notification while terminal sessions remain active, including when the UI is closed. -->
+    <string name="bridge_background_running">Terminal active in background · Tap to return</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_preparing">"Preparing your private device key…"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_ready">"Ready for Windows setup, or scan a fresh pairing QR. No Termux required."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_title">"Your PC.\nIn your pocket."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_brand">"POWERSHELL CONNECT"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_subtitle">"A full Windows terminal, with the keys you need. After setup, this icon opens your saved connection."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_scan">"Scan pairing QR"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_paste_link">"Or paste a pairing link"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_connect">"Connect securely"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_check">"Check Windows setup"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_footer">"Keep Tailscale connected on both devices. Your private key stays on this phone. Powered by open-source ConnectBot."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_scan_prompt">"Scan the Windows pairing QR"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_verifying">"Verifying Windows and enrolling this phone…"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_unreachable">"Windows is unreachable. Check Tailscale and keep the pairing window open, then retry."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_tls_error">"Windows certificate verification failed. Generate a fresh QR; no key was sent to an unverified host."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_invalid">"Invalid setup details. Generate a fresh QR."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_failed">"Setup could not finish. Check Tailscale and retry with a fresh QR."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_toggle_keyboard">"Toggle keyboard"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_more_keys">"More terminal keys"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_key_title">"Terminal keys"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_modifier_help">"Tap a modifier for the next key. Hold it to lock. Tap again to release."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_interrupt">"Interrupt command"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_eof">"End of input"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_clear">"Clear terminal"</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_copy_help">"Select terminal text to copy. Use the terminal menu to paste; Ctrl+C sends an interrupt."</string>
+    <!-- PowerShell Connect native setup or terminal control text. -->
+    <string name="bridge_back_terminal">"Back to terminal"</string>
+</resources>

@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qr-powershell-connect"
+version = "1.0.1"
+description = "Pinned, single-use Android enrollment for Windows OpenSSH over Tailscale"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["cryptography>=44,<49", "segno>=1.6,<2"]
+
+[project.scripts]
+qrbridge = "qrbridge:main"
+
+[tool.setuptools]
+py-modules = ["qrbridge", "keylock", "landing"]

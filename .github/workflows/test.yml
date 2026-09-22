@@ -1,0 +1,30 @@
+name: Tests
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  python:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.11', '3.13']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e .
+      - run: python -m unittest discover -s tests -v
+      - if: runner.os == 'Linux'
+        run: bash -n android/install.sh
+      - if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $failures = @()
+          @(Get-Item Setup.ps1; Get-ChildItem windows/*.ps1) | ForEach-Object {
+            $tokens=$null; $errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors) | Out-Null
+            $failures += $errors
+          }
+          if ($failures.Count) { $failures; exit 1 }
