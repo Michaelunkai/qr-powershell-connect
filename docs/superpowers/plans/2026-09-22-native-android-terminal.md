@@ -39,4 +39,4 @@
 - [x] Record owner-confirmed Windows reboot acceptance and independently verify post-boot services. Pre-login visual observation remains unverified.
 - [x] Record owner-confirmed Android reboot acceptance and independently verify uptime and Always-on VPN initialization.
 - [x] Verify alternate-network Tailscale relay reachability with Wi-Fi disabled. Native camera enrollment and an interactive command over mobile data remain separately unverified.
-- [ ] Publish a new public GitHub repository after the remaining device acceptance tests pass.
+- [x] Publish a new public GitHub repository after owner-confirmed reboot acceptance and final local release checks.
