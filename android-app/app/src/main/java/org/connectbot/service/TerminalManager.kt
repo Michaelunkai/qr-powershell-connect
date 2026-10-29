@@ -216,13 +216,36 @@ class TerminalManager :
     var isUiVisible = false
         private set
 
+    private var probeJob: Job? = null
+
     private val uiVisibilityObserver = object : DefaultLifecycleObserver {
         override fun onStart(owner: LifecycleOwner) {
             isUiVisible = true
+            reconnectWaitingNow()
+            // Check live sessions right away (the phone may have slept, roamed or
+            // the PC may have restarted) and keep checking while on screen, so a
+            // silently dead connection redials instead of freezing the terminal.
+            probeJob?.cancel()
+            probeJob = scope.launch {
+                while (true) {
+                    probeLiveConnections()
+                    delay(LIVENESS_PROBE_INTERVAL_MS)
+                }
+            }
         }
 
         override fun onStop(owner: LifecycleOwner) {
             isUiVisible = false
+            probeJob?.cancel()
+            probeJob = null
+        }
+    }
+
+    private fun probeLiveConnections() {
+        val live = synchronized(_bridges) { _bridges.toList() }
+        for (bridge in live) {
+            val ssh = bridge.transport as? org.connectbot.transport.SSH ?: continue
+            scope.launch(dispatchers.io) { ssh.probe() }
         }
     }
 
@@ -1060,12 +1083,36 @@ class TerminalManager :
      */
     private fun reconnectPending() {
         synchronized(pendingReconnect) {
+            if (pendingReconnect.isEmpty()) return
+            // The mesh VPN may have been stopped by the OS or a network change;
+            // ask the approved Tailscale app to bring it back before dialing.
+            org.connectbot.bridge.TailscaleStartup.connectIfNeeded(this)
             for (ref in pendingReconnect) {
                 val bridge = ref.get() ?: continue
                 if (bridge.isAwaitingClose()) continue
                 bridge.startConnection()
             }
             pendingReconnect.clear()
+        }
+    }
+
+    /**
+     * The user just opened the app: skip whatever backoff remains for sessions
+     * waiting to retry, so the terminal is live again within seconds instead of
+     * after the next scheduled attempt.
+     */
+    private fun reconnectWaitingNow() {
+        val waiting = reconnectJobs.keys.filter { it.disconnected && !it.connecting && !it.isAwaitingClose() }
+        if (waiting.isEmpty()) return
+        scope.launch(dispatchers.io) {
+            synchronized(pendingReconnect) {
+                for (bridge in waiting) {
+                    reconnectJobs.remove(bridge)?.cancel()
+                    reconnectAttempts.remove(bridge)
+                    if (pendingReconnect.none { it.get() === bridge }) pendingReconnect.add(WeakReference(bridge))
+                }
+                reconnectPending()
+            }
         }
     }
 
@@ -1087,6 +1134,9 @@ class TerminalManager :
         const val TAG = "CB.TerminalManager"
 
         const val VIBRATE_DURATION: Long = 30
+
+        /** How often live sessions are checked while the app is on screen. */
+        const val LIVENESS_PROBE_INTERVAL_MS = 45_000L
 
         // Must match AUTH_VALIDITY_DURATION_SECONDS in BiometricKeyManager
         const val BIOMETRIC_AUTH_VALIDITY_SECONDS = 30

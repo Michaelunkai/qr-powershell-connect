@@ -52,4 +52,6 @@
     <string name="bridge_copy_help">"Select terminal text to copy. Use the terminal menu to paste; Ctrl+C sends an interrupt."</string>
     <!-- PowerShell Connect native setup or terminal control text. -->
     <string name="bridge_back_terminal">"Back to terminal"</string>
+    <string name="bridge_key_save">"Save (nano Ctrl+S)"</string>
+    <string name="bridge_key_exit">"Exit (nano Ctrl+X)"</string>
 </resources>

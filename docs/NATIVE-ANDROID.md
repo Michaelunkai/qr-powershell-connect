@@ -18,7 +18,7 @@ The default contained Android Studio directory is `F:\backup\windowsapps\install
 
 The release APK and SHA-256 are written under `dist`. Signing material remains in the host installer's administrator-only `%ProgramData%\QrPowerShellConnect` directory, outside source control. Keep that signing identity to install future updates without losing app data. Never commit or distribute the signing password or private keystore. The Windows host setup must be completed before a signed release is built.
 
-Install `dist\PowerShell-Connect-2.0.1.apk` using Android's package installer. Approve the notification permission so the active session is visible. Join the same Tailscale network as Windows and allow the VPN. For boot availability, enable Tailscale's Android Always-on VPN option where supported; this is independent of PowerShell Connect's launch-only lifecycle.
+Install `dist\PowerShell-Connect-2.0.2.apk` using Android's package installer. Approve the notification permission so the active session is visible. Join the same Tailscale network as Windows and allow the VPN. For boot availability, enable Tailscale's Android Always-on VPN option where supported; this is independent of PowerShell Connect's launch-only lifecycle.
 
 ## Pair once
 

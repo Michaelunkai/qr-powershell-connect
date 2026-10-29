@@ -23,7 +23,7 @@ class BridgeEnrollmentTest {
         assertEquals(8443, ticket.port)
     }
     @Test fun rejectsPublicAddress() { assertThrows(IllegalArgumentException::class.java) { BridgeEnrollment.parse(link("8.8.8.8"), 1000) } }
-    @Test fun rejectsHostSubstitution() { assertThrows(IllegalArgumentException::class.java) { BridgeEnrollment.parse(link(outer = "100.76.198.54"), 1000) } }
+    @Test fun rejectsHostSubstitution() { assertThrows(IllegalArgumentException::class.java) { BridgeEnrollment.parse(link(outer = "100.90.80.71"), 1000) } }
     @Test fun rejectsExpiredTicket() { assertThrows(IllegalArgumentException::class.java) { BridgeEnrollment.parse(link(expires = 999), 1000) } }
     @Test fun rejectsIndefiniteTicket() { assertThrows(IllegalArgumentException::class.java) { BridgeEnrollment.parse(link(expires = 999999), 1000) } }
     @Test fun rejectsCommandInjectionHost() { assertThrows(IllegalArgumentException::class.java) { BridgeEnrollment.requireMeshHost("100.90.80.70\nProxyCommand evil") } }

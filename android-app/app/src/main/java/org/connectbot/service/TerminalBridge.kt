@@ -487,7 +487,13 @@ class TerminalBridge {
             Timber.w("No transport found for ${host.protocol}")
             return
         }
-        connecting = true
+        // A fresh attempt must be able to fail again: without clearing the
+        // flag, the second failure is swallowed and auto-reconnect stops.
+        synchronized(this) {
+            disconnected = false
+            disconnectReason = DisconnectReason.UNKNOWN
+            connecting = true
+        }
 
         transport = newTransport
         newTransport.bridge = this

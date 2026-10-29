@@ -79,6 +79,9 @@ import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.InvalidKeySpecException
 import java.util.Locale
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.regex.Pattern
 
 /**
@@ -106,6 +109,7 @@ class SSH :
     private var savedPasswordTried = false
 
     private var connection: Connection? = null
+    private var directProxy: TrackingProxyData? = null
     private val jumpConnections: MutableList<Connection> = mutableListOf()
     private var session: Session? = null
 
@@ -919,9 +923,14 @@ class SSH :
         connection?.addConnectionMonitor(this)
         connection?.let { registerUserAuthBanner(it, currentHost.authBannerSourceName()) }
 
-        // If we have a jump host connection, set up the proxy
-        directJumpConnection?.let {
-            connection?.setProxyData(JumpHostProxyData(it))
+        // Jump hosts tunnel through SSH; everything else gets a direct socket we
+        // keep hold of, so probe() can drop a connection that stopped answering.
+        if (directJumpConnection != null) {
+            directProxy = null
+            connection?.setProxyData(JumpHostProxyData(directJumpConnection))
+        } else {
+            directProxy = TrackingProxyData(parseIpVersion(currentHost.ipVersion, currentHost.hostname))
+                .also { connection?.setProxyData(it) }
         }
 
         try {
@@ -1020,6 +1029,7 @@ class SSH :
         connection?.let { unregisterUserAuthBanner(it) }
         connection?.close()
         connection = null
+        directProxy = null
 
         // Close all jump host connections (in reverse order)
         jumpConnections.asReversed().forEach { jc ->
@@ -1033,6 +1043,36 @@ class SSH :
         synchronized(userAuthBannerCallbacks) {
             userAuthBannerCallbacks.clear()
         }
+    }
+
+    /**
+     * Ask the server for a reply and wait up to [timeoutMs]. A connection that
+     * stays silent (peer gone, network path dead, PC asleep) is torn down here,
+     * which runs the normal disconnect and auto-reconnect path. Returns true when
+     * the connection answered or there was nothing to check.
+     */
+    fun probe(timeoutMs: Long = PROBE_TIMEOUT_MS): Boolean {
+        val conn = connection ?: return true
+        val proxy = directProxy ?: return true
+        if (!connected || !sessionOpen || bridge?.isInGracePeriod() == true) return true
+        val done = CountDownLatch(1)
+        val failed = AtomicBoolean(false)
+        val worker = Thread({
+            try {
+                conn.ping()
+            } catch (e: Exception) {
+                failed.set(true)
+            } finally {
+                done.countDown()
+            }
+        }, "ssh-probe")
+        worker.isDaemon = true
+        worker.start()
+        if (done.await(timeoutMs, TimeUnit.MILLISECONDS) && !failed.get()) return true
+        if (connection !== conn || bridge?.isInGracePeriod() == true) return true
+        Timber.w("SSH probe: no reply in ${timeoutMs}ms, dropping the dead connection")
+        proxy.abort()
+        return false
     }
 
     private fun onDisconnect(reason: DisconnectReason = DisconnectReason.IO_ERROR) {
@@ -1472,6 +1512,7 @@ class SSH :
         }
 
         private const val PROTOCOL = "ssh"
+        private const val PROBE_TIMEOUT_MS = 10_000L
         private const val DEFAULT_PORT = 22
 
         private const val AUTH_PUBLICKEY = "publickey"

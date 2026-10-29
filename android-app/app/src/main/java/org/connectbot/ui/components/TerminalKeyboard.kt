@@ -81,7 +81,7 @@ private const val UI_OPACITY = 0.5f
 /**
  * Height of the virtual keyboard keys in dp.
  */
-const val TERMINAL_KEYBOARD_HEIGHT_DP = 104
+const val TERMINAL_KEYBOARD_HEIGHT_DP = org.connectbot.bridge.BRIDGE_KEY_ROW_DP * 2
 
 /**
  * Width of the virtual keyboard keys in dp.

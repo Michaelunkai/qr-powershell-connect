@@ -96,6 +96,7 @@ try {
         $listen="ListenAddress 127.0.0.1`nListenAddress $meshIp"
         $state['meshIp']=$meshIp
     }
+    $allow=$UserName.ToLowerInvariant()
     if(-not (Test-Path $reg)){New-Item -Path $reg | Out-Null}
     New-ItemProperty -Path $reg -Name DefaultShell -PropertyType String -Value "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -Force | Out-Null
     $keyFile = Join-Path $script:StateRoot 'authorized_keys'
@@ -113,7 +114,7 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 AuthenticationMethods publickey
 PermitEmptyPasswords no
-AllowUsers $($UserName.ToLowerInvariant())
+AllowUsers $allow
 AuthorizedKeysFile $keyPath
 AllowAgentForwarding no
 AllowTcpForwarding no

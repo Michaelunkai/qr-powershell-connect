@@ -1,115 +1,238 @@
-# QR PowerShell Connect
+<div align="center">
 
-[Download the Android APK and Windows source](https://github.com/Michaelunkai/qr-powershell-connect/releases/latest) | [Native app guide](docs/NATIVE-ANDROID.md)
+<img src="docs/images/logo.png" alt="PowerShell Connect icon" width="128" height="128">
 
-A Windows 11 / Android bridge (MIT host tools, Apache-2.0 native app) using Windows OpenSSH, a Tailscale mesh, and certificate-pinned, one-time QR enrollment. The phone generates its own ED25519 key. Windows runs the SSH and mesh services without console windows or a logged-in user.
+# PowerShell Connect
 
-## What this actually guarantees
+**Your PC's real Administrator PowerShell, in your pocket.**
 
-Enrollment persists until its SSH key is revoked or its application data is erased. Connectivity requires a running, awake PC, working networking, authenticated Tailscale clients, and tailnet policy permitting TCP 2222. Android must allow the VPN to operate. A scan cannot install apps, approve Android permissions, or log into a Tailscale account. Install PowerShell Connect, open its built-in QR scanner and scan the Windows pairing QR once. Future sessions open directly from its home-screen icon. See [native Android setup](docs/NATIVE-ANDROID.md).
+A native Android terminal that opens straight into Windows PowerShell 5.1 on your PC, with your own profile loaded, from any network in the world, and reconnects by itself.
 
-There is no zero-latency networking or sub-millisecond Windows service boot. DNS, network initialization, NAT traversal, relay fallback, SSH negotiation and the user's PowerShell profile all consume time. SSH multiplexing avoids repeated handshakes while an existing connection survives. A broken connection can be retried but cannot restore the in-memory state of a terminated PowerShell process. Service configuration checks cannot prove that an entire Windows boot has no visual artifacts.
+[![Latest release](https://img.shields.io/github/v/release/Michaelunkai/qr-powershell-connect?label=release&color=1f6feb)](https://github.com/Michaelunkai/qr-powershell-connect/releases/latest)
+[![Download APK](https://img.shields.io/badge/download-APK-2ea043?logo=android&logoColor=white)](https://github.com/Michaelunkai/qr-powershell-connect/releases/latest/download/PowerShell-Connect-2.0.2.apk)
+[![Windows 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4?logo=windows&logoColor=white)](#1-set-up-the-pc)
+[![Android 7+](https://img.shields.io/badge/Android-7.0%2B-3ddc84?logo=android&logoColor=white)](#3-set-up-the-phone)
+[![CI](https://github.com/Michaelunkai/qr-powershell-connect/actions/workflows/ci.yml/badge.svg)](https://github.com/Michaelunkai/qr-powershell-connect/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT%20%2B%20Apache--2.0-blue)](#license)
 
-## Host installation
+[Download](#download) · [Quick start](#quick-start) · [Using it](#using-it) · [Troubleshooting](#troubleshooting) · [How it works](#how-it-works)
 
-Run in an elevated Windows PowerShell 5.1 console from this directory:
+</div>
 
-For automated setup, run `./Setup.ps1`; after signing into Tailscale, run
-`./Setup.ps1 -Pair` to verify and display a fresh pairing QR. The equivalent
-individual steps are:
+---
+
+<table>
+<tr>
+<td width="33%" align="center"><img src="docs/images/terminal.png" alt="PowerShell prompt on the phone" width="260"><br><sub><b>Straight into your profile</b><br>Elevated PowerShell 5.1, profile loaded</sub></td>
+<td width="33%" align="center"><img src="docs/images/nano.png" alt="nano running on the phone" width="260"><br><sub><b>Full-screen editors</b><br>nano with ^S / ^X one tap away</sub></td>
+<td width="33%" align="center"><img src="docs/images/icons.png" alt="App icon in every Android shape" width="260"><br><sub><b>Adaptive icon</b><br>Every launcher shape, light and dark</sub></td>
+</tr>
+</table>
+
+## Why
+
+Remote desktop apps are heavy, and generic SSH clients need setup, port forwarding and passwords. PowerShell Connect is built for a single job: **tap the icon and you're at your PC's admin prompt**.
+
+| | |
+|---|---|
+| ⚡ **One tap** | Opens directly into the PC's shell. No host list, no login screen. |
+| 🛡️ **Real admin shell** | Windows PowerShell 5.1 with a full Administrator token and your normal `$PROFILE`, not a restricted remote session. |
+| 🌍 **Works anywhere** | Wi-Fi, mobile data, hotel networks. Traffic goes through your private [Tailscale](https://tailscale.com) network, with no ports opened on your router. |
+| 🔁 **Heals itself** | Spots a dead connection within seconds and reconnects. The PC side repairs its own SSH listener and Tailscale every minute. |
+| 📱 **Made for phones** | A two-row key bar (Esc, Tab, Ctrl, Alt, Shift, arrows, ^C/^S/^X) and a sheet of nano, PSReadLine and F-keys. |
+| 🔐 **Paired with one QR** | The phone makes its own key inside Android Keystore. The PC's host key is pinned. Pairing QR codes expire and work only once. |
+
+## Download
+
+| Component | Get it |
+|---|---|
+| 📱 **Android app** (signed APK) | [`PowerShell-Connect-2.0.2.apk`](https://github.com/Michaelunkai/qr-powershell-connect/releases/latest/download/PowerShell-Connect-2.0.2.apk) |
+| 🖥️ **PC setup** (scripts) | [`PowerShell-Connect-2.0.2-pc-setup.zip`](https://github.com/Michaelunkai/qr-powershell-connect/releases/latest/download/PowerShell-Connect-2.0.2-pc-setup.zip) |
+| 🔎 **Checksums** | [`SHA256SUMS.txt`](https://github.com/Michaelunkai/qr-powershell-connect/releases/latest/download/SHA256SUMS.txt) |
+
+All versions are on the [releases page](https://github.com/Michaelunkai/qr-powershell-connect/releases).
+
+## Quick start
+
+You need a Windows 10/11 PC, an Android phone (7.0 or newer) and a free [Tailscale](https://tailscale.com) account. Setup takes about ten minutes, once.
+
+### 1. Set up the PC
+
+Extract `PowerShell-Connect-2.0.2-pc-setup.zip`. Open **Windows PowerShell as Administrator** in that folder and run:
 
 ```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e .
-.\windows\Install-Bridge.ps1
-& "$env:ProgramFiles\Tailscale\tailscale.exe" up --unattended=true
-.\windows\Test-Bridge.ps1 -Loopback
-.\windows\Test-Recovery.ps1   # MeshBind only; run before enrolling a phone
+Set-ExecutionPolicy -Scope Process Bypass -Force
+.\Setup.ps1 -Distribution GitHubZipPreview -IngressPolicy MeshBind
 ```
 
-Complete the Tailscale login URL when prompted. The installer uses winget to install the signed vendor package and Windows Features to install OpenSSH. An enabled local account already in Administrators is required; the default is the invoking user. It refuses to overwrite an existing SSH service. Port 2222 avoids accidental exposure through rules for port 22. The firewall permits Tailscale IPv4 source addresses; no router forwarding or public SSH listener rule is created. Review any pre-existing broad firewall allow rules and tailnet grants independently.
+This will:
 
-If Windows Features cannot install because of component-store damage, `Install-Bridge.ps1 -Distribution WinGetPreview` uses Microsoft's standalone `Microsoft.OpenSSH.Preview` server MSI. This is an explicitly selected preview distribution, not the stable in-box Windows capability. It avoids servicing the damaged component store and does not repair Windows. The manifest records which distribution rollback owns. [Microsoft documents the standalone MSI route](https://learn.microsoft.com/en-us/troubleshoot/windows-server/system-management-components/upgrade-in-box-openssh-to-latest-openssh-release).
+- install Tailscale (if needed) and ask you to sign in once;
+- install a Microsoft-signed OpenSSH server on port 2222, listening **only** on Tailscale and localhost;
+- make Windows PowerShell the SSH shell, with key-only login for your account;
+- register a hidden SYSTEM recovery task that keeps everything running after reboots and network changes;
+- run a real loopback login and confirm it gets an Administrator token.
 
-For an environment where Windows servicing cannot install OpenSSH and firewall changes are unavailable, the tested alternative is:
+> [!TIP]
+> On a healthy Windows install, plain `.\Setup.ps1` uses the built-in OpenSSH feature and a Tailscale-only firewall rule. The `GitHubZipPreview` + `MeshBind` mode shown above is the most robust option: it needs no Windows feature servicing and no firewall changes.
 
-```powershell
-.\windows\Install-Bridge.ps1 -Distribution GitHubZipPreview -IngressPolicy MeshBind
-```
+### 2. Make it last forever (two Tailscale settings)
 
-This selects Microsoft's 10.0p2 Preview ZIP, checks its pinned SHA-256 and Microsoft executable signatures, and registers only the SSH server service. `MeshBind` requires an authenticated Tailscale host and binds SSH exclusively to its Tailscale IPv4 address and localhost. It does not depend on changing global firewall settings. A protected SYSTEM scheduled task repairs a missing mesh listener at boot and every minute, covering the race where sshd starts before Tailscale has assigned its address. The task runs headlessly with no user profile; ordinary SSH sessions still load the user's normal PowerShell profile. The stable Windows capability remains the default for healthy installations.
+These two settings are what keep it working after months away. Only you can change them.
 
-The default SSH shell is the system Windows PowerShell executable, with its normal profile behavior. The SSH process receives its own session; it does not attach to a desktop terminal already open. An actual authenticated loopback test verifies the administrator token without disabling UAC or setting LocalAccountTokenFilterPolicy.
+1. **Turn off key expiry for the PC.** In the [Tailscale admin console → Machines](https://login.tailscale.com/admin/machines), open your PC's `⋯` menu and choose **Disable key expiry**. Otherwise the PC drops off your network when its key expires (about every 180 days).
+2. **Make Tailscale an Always-on VPN on the phone.** Go to Android **Settings → Network & internet → VPN → Tailscale ⚙ → Always-on VPN: On**. Android can then never quietly stop Tailscale in the background.
 
-## Native Android app (recommended)
+### 3. Set up the phone
 
-Build the signed APK with `windows/Build-NativeApp.ps1 -Action Release`, install `dist/PowerShell-Connect-2.0.1.apk`, then scan a fresh QR inside the app. Generate it with `windows/Start-Pairing.ps1`. The app generates and protects its own device key and pins the Windows host key. Version 2.0.1 requests the already-approved Tailscale VPN when opened and bounds SSH connection attempts so reconnects can recover from a delayed network.
+1. Install **Tailscale** from Google Play and sign in with the **same account** as the PC.
+2. Download and install [`PowerShell-Connect-2.0.2.apk`](https://github.com/Michaelunkai/qr-powershell-connect/releases/latest/download/PowerShell-Connect-2.0.2.apk). Allow the install from your browser if Android asks.
+3. Allow notifications when the app first opens. A small notification keeps your session alive in the background.
 
-PowerShell Connect has a phone-sized terminal, arrows, Ctrl/Alt/Shift, Esc/Tab, function keys and text input. It starts only when opened, keeps active connections in a foreground service when minimized or dismissed from Recents, and shows an ongoing notification. It has no boot receiver. Disconnect or Force stop ends the app session. Read [build, pairing and lifecycle details](docs/NATIVE-ANDROID.md).
+### 4. Pair once
 
-## Legacy Termux client (optional)
-
-Install Tailscale, Termux, and optionally Termux:Widget from their official distributions. Termux add-ons must share the app's signing source. Join the same tailnet, approve Android's VPN prompt, and enable Always-on VPN in Android Settings if supported. Permit background activity for Tailscale. An OEM may still kill background apps. Termux need not run continuously for shortcut-based access.
-
-Copy this repository's `android` directory to the phone, then run in Termux:
-
-```bash
-bash /path/to/android/install.sh
-```
-
-The installer preserves an existing URL opener as `~/bin/termux-url-opener.before-qrbridge` and delegates non-bridge links to it. It creates `windows` in Termux's executable directory and a `Windows-PowerShell` widget shortcut. Persistent credentials live in Termux-private storage under `~/.ssh/qrbridge`, never shared Android storage.
-
-On Windows, run:
+On the PC (elevated):
 
 ```powershell
 .\windows\Start-Pairing.ps1
 ```
 
-Open `%ProgramData%\QrPowerShellConnect\pairing.png` and scan it. The terminal also renders the QR. The new QR opens a real page on your PC's Tailscale address. Tap **Copy pairing command**, open Termux, paste, and press Enter. Keep the pairing window and Tailscale running. Existing Termux installations need no reinstall. Old QR images pointing to `.invalid` must be replaced by running the script again.
+In the app, tap **Scan QR** and point it at the code. That's it. From now on, the home-screen icon opens your PowerShell directly.
 
-The QR is an administrator enrollment capability valid for fifteen minutes when generated by `Start-Pairing.ps1` (the Python CLI defaults to five). Keep it private. The browser guide uses HTTP port 8080 inside the encrypted Tailscale tunnel; registration still uses certificate-pinned TLS on port 8443. Both listeners bind only the Tailscale IPv4 address. The server accepts one new public key, permits same-key retries until expiry, then deletes its QR and TLS files and closes both listeners. A second device needs a fresh enrollment. The temporary firewall rule is removed when the pairing wrapper exits; after a forced process kill, rerun the wrapper or remove `QrBridge-Pairing` manually. There is no pairing listener on boot.
+## Using it
 
-After pairing:
+### The key bar
 
-```bash
-windows                       # Interactive PowerShell
-windows 'Get-Date'            # Run a command
-windows --reconnect           # Retry a broken interactive session with backoff
+```
+┌─────┬─────┬──────┬─────┬───────┬────┬────┬────┬───┐
+│ Esc │ Tab │ Ctrl │ Alt │ Shift │ ^C │ ^S │ ^X │ ⌨ │
+├─────┼─────┼──────┼─────┼───────┼────┼────┼────┼───┤
+│  ←  │  ↓  │  ↑   │  →  │ Home  │End │PgUp│PgDn│ ⋯ │
+└─────┴─────┴──────┴─────┴───────┴────┴────┴────┴───┘
 ```
 
-Successful enrollment runs a real SSH command and prints `QRBRIDGE_ANDROID_OK` plus the Windows account. Configure Tailscale key expiry deliberately in the admin console; this project does not silently disable it. Retain device revocation as an emergency control. Networks blocking both direct and relay traffic can prevent connectivity.
+- **Ctrl / Alt / Shift:** tap once for the next key only, or hold to lock (shown with `•`). Tap again to release.
+- **^C** interrupts, and **^S / ^X** save and exit in nano.
+- **⌨** shows or hides the phone keyboard.
+- **⋯** opens the full key sheet:
 
-## Verification and operations
+| Section | Keys |
+|---|---|
+| **nano** | ^O Write · ^W Find · ^\ Replace · ^_ Go to line · ^K Cut · ^U Paste · M-U Undo · M-E Redo · M-A Mark · M-6 Copy · ^G Help · M-# Line numbers |
+| **PowerShell** | ^R History search · ^L Clear · ⇧Tab Previous completion · ^Space Completion menu · ^D End of input · ^Z Undo · Ins · Del |
+| **Function keys** | F1 – F12 |
+| **Symbols** | <code>&#124; \ / ~ - $ &#96; { } @ [ ] ' " # &lt; &gt; &amp; ; %</code> |
+
+### Everyday tips
+
+- Select terminal text to copy it. The 📋 button in the top bar pastes. (Ctrl+C sends an interrupt, not a copy.)
+- Pair once with **Scan QR**, or paste a pairing link if the camera isn't handy.
+- Leave the app whenever you like. The session keeps running in the background with a notification, and you come back to the same prompt.
+- Run anything you would run at your desk: `nano`, `winget`, `git`, `Get-Service`, `Restart-Computer`, your own profile functions.
+
+## Reliability by design
+
+```mermaid
+flowchart LR
+    subgraph Phone["📱 Phone"]
+        A[PowerShell Connect] -->|liveness probe<br/>on open + every 45 s| A
+    end
+    subgraph Mesh["🔒 Tailscale (WireGuard)"]
+        T((direct or<br/>relayed path))
+    end
+    subgraph PC["🖥️ Windows PC"]
+        S[sshd :2222<br/>Tailscale + localhost only] --> P[powershell.exe<br/>Admin token + $PROFILE]
+        R[Recovery task<br/>SYSTEM, boot + every minute] -.repairs.-> S
+        R -.restarts.-> TS[Tailscale service]
+    end
+    A <-->|SSH, ED25519 key,<br/>pinned host key| T <--> S
+```
+
+| Failure | What happens automatically |
+|---|---|
+| Phone changes network (Wi-Fi ↔ mobile) | Tailscale moves the path and the app reconnects after a short grace period. |
+| PC stops answering but TCP still looks open | The app's probe gets no reply within 10 s, drops the link and redials. Tested at about 25 s from freeze to fresh prompt. |
+| PC reboots | The SSH service starts at boot with no user logged in. The recovery task re-binds the listener once Tailscale has its address. |
+| Tailscale or sshd stopped or disabled | The recovery task re-enables and restarts them within a minute. |
+| sshd crashes | Windows Service Control Manager restarts it after 5, 15 and 60 seconds. |
+| App killed by Android | Opening the icon starts a fresh session with your profile. It even asks Tailscale to connect if the VPN is down. |
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `ECONNREFUSED` / "connection refused" | The PC's listener is down. Wait a minute for the recovery task, or run `.\windows\Repair-Bridge.ps1` as Administrator. Check with `.\windows\Test-Bridge.ps1 -Loopback`. |
+| Connection times out | Make sure Tailscale is connected on **both** devices with the same account, and that the PC is awake (Settings → Power → Sleep: Never while plugged in). |
+| Worked for months, then stopped | The PC's Tailscale key probably expired. Run `tailscale up` on the PC, then turn off key expiry (step 2 above). |
+| Stops working when the phone is idle | Turn on Always-on VPN for Tailscale, and set both apps' Battery usage to **Unrestricted**. |
+| "Host key changed" warning | The PC's SSH host key changed (for example after a reinstall). Pair again with `Start-Pairing.ps1`. |
+| Need to remove a phone | `.\windows\Revoke-Key.ps1 -PublicKey '<the phone key>'` |
+| Uninstall everything from the PC | `.\windows\Uninstall-Bridge.ps1` rolls back exactly what setup changed. |
+
+Logs are in `%ProgramData%\QrPowerShellConnect\` (`operations.log`, `recovery.log`, `sshd.log`) and in `%ProgramData%\ssh\logs\`.
+
+## How it works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant W as Windows (Start-Pairing)
+    participant Q as QR code
+    participant A as Android app
+    W->>Q: One-time enrollment link + TLS pin (15 min)
+    A->>Q: Scan
+    A->>A: Generate ED25519 key in Android Keystore
+    A->>W: Send public key over pinned TLS (Tailscale only)
+    W->>W: Add key, delete QR, close listener
+    A->>W: SSH :2222, pinned host key
+    W-->>A: Administrator PowerShell with $PROFILE
+```
+
+| Part | Technology |
+|---|---|
+| Android app | Kotlin + Jetpack Compose, based on [ConnectBot](https://github.com/connectbot/connectbot) (Apache-2.0), sshlib/trilead SSH, Android Keystore |
+| Transport | [Tailscale](https://tailscale.com) WireGuard mesh, direct or DERP-relayed |
+| PC server | Microsoft Win32-OpenSSH (signature- and hash-verified), `DefaultShell` = Windows PowerShell 5.1 |
+| Pairing | Python (`qrbridge.py`): single-use token, certificate-pinned TLS, bound to the Tailscale IP only |
+| Self-healing | `Repair-Bridge.ps1` as a SYSTEM scheduled task, plus SCM failure actions |
+
+### Repository layout
+
+```
+android-app/        Native Android app (Gradle, Kotlin/Compose)
+windows/            PC install, pairing, repair, test, revoke and uninstall scripts
+qrbridge.py         Pairing server and QR generator
+Setup.ps1           One-command PC setup
+android/            Legacy Termux client (optional)
+docs/               Architecture, Android guide and validation records
+tests/              Python unit tests
+```
+
+More detail: [architecture](docs/architecture.md) · [native Android guide](docs/NATIVE-ANDROID.md) · [validation records](docs/NATIVE-VALIDATION.md) · [security boundary](SECURITY.md)
+
+## Build from source
 
 ```powershell
+# Android APK (JDK 17 + Android SDK). Signing key is read from %ProgramData%, never from the repo.
+.\windows\Build-NativeApp.ps1 -Action Release   # -> dist\PowerShell-Connect-2.0.2.apk
+.\windows\Build-NativeApp.ps1 -Action Test
+
+# Python pairing tools
+py -3 -m venv .venv; .\.venv\Scripts\python.exe -m pip install -e .
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
-.\windows\Test-Bridge.ps1 -Loopback
-.\windows\Revoke-Key.ps1 -PublicKey (Get-Content .\phone-key.pub -Raw).Trim()
-.\windows\Uninstall-Bridge.ps1
 ```
 
-`Test-Bridge.ps1` checks service startup, process Session 0, noninteractive LocalSystem execution, the default shell, mesh login and unattended mode, key ACLs, SSH syntax, and the firewall scope. Loopback creates a temporary ED25519 key, pins the real host key, verifies an administrator token, measures cold-session time, and removes the key in `finally`. Do not run enrollment, revocation, and loopback key-file edits concurrently.
+## Security
 
-Evidence lives under `%ProgramData%\QrPowerShellConnect\verification.json`. SSH logs are under `%ProgramData%\ssh\logs`, or `QrPowerShellConnect\sshd.log` for the ZIP service. Installation/enrollment/revocation events go to `operations.log`; enrollment errors have their own rotating `enrollment.log`. The mesh readiness task writes `recovery.log`. SSH service failures trigger Service Control Manager restarts at 5, 15, and 60 seconds. Tailscale runs its vendor service and handles normal network changes itself. Authentication expiry requires reauthentication, not endless process restarts.
+- SSH accepts **public keys only** for one named Administrators account, on port 2222, bound to Tailscale and localhost. Nothing is exposed to the internet or your LAN.
+- The phone's private key never leaves Android Keystore. The PC's host key is pinned during pairing.
+- Pairing QR codes are single-use administrator capabilities that expire. Treat one like a password until it's used.
+- Agent, TCP and X11 forwarding are disabled. There is no password or keyboard-interactive login.
 
-Installation writes a manifest before changing the host and automatically invokes rollback on failure. Rollback restores the saved default shell and SSH configuration and removes bridge firewall rules and the recovery task. It removes the Windows capability or MSI only if this installation added it; the ZIP service is removed while its binaries remain for audit. Tailscale software, identity, protected public-key records and logs are retained so rollback does not destroy unrelated mesh access. Read `docs/architecture.md` for the state model and recovery limits. Deployment validation and limitations are recorded in `docs/VALIDATION.md`.
+See [SECURITY.md](SECURITY.md) for the full boundary and how to report issues.
 
-## Boot acceptance test
+## License
 
-1. Record a passing live verification report and the current boot timestamp.
-2. Reboot Windows when other work is saved; leave it at the sign-in screen.
-3. On Android over mobile data, open the shortcut and run `whoami` and `Get-Date`.
-4. Observe the Windows screen from power-on through login. Record any console artifacts separately from unrelated startup software.
-5. Rerun verification and confirm a new boot timestamp, running automatic services, and Session 0.
+Host tools: [MIT](LICENSE). Android app: Apache-2.0 (ConnectBot-derived). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Reboot and real mobile-network results must be recorded explicitly; passing unit tests does not establish them. See `docs/VALIDATION.md` for results from this build.
-
-## Upstream references
-
-- [Microsoft: Windows OpenSSH configuration and DefaultShell](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh-server-configuration)
-- [Microsoft: Windows SSH key management](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement)
-- [Tailscale unattended Windows service](https://tailscale.com/docs/how-to/run-unattended)
-- [Termux application and installation](https://github.com/termux/termux-app)
-- [Termux URL hooks](https://wiki.termux.com/wiki/Intents_and_Hooks)
-
-This project has automated tests and live validation tooling; it is not an independently audited security product. See `SECURITY.md` for the security boundary.
+<div align="center"><sub>Made for people who want their own PC's shell, everywhere.</sub></div>

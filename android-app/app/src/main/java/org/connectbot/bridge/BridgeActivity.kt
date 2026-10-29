@@ -48,6 +48,10 @@ import java.io.File
 import java.security.KeyPairGenerator
 import javax.inject.Inject
 
+/** Terminal font for the PowerShell profile (about 63 columns portrait). */
+private const val TERMINAL_FONT_SP = 10
+private const val LAYOUT_VERSION = 2
+
 @AndroidEntryPoint
 class BridgeActivity : AppCompatActivity() {
     @Inject lateinit var hosts: HostRepository
@@ -111,7 +115,7 @@ class BridgeActivity : AppCompatActivity() {
                 ready = true
                 val saved = prefs.getLong("host", 0)
                 val host = if (saved > 0) hosts.findHostById(saved) else null
-                if (host != null) open(host) else { busy = false; checkProvisioning() }
+                if (host != null) { migrateLayout(host); open(host) } else { busy = false; checkProvisioning() }
             } catch (e: Exception) { fail(e) }
         }
     }
@@ -189,7 +193,8 @@ class BridgeActivity : AppCompatActivity() {
         val raw = Base64.decode(hostkey.substringAfter(' '), Base64.NO_WRAP)
         Ed25519Verify.get().decodePublicKey(raw)
         val profile = profiles.getDefault()
-        profiles.update(profile.copy(fontSize = 13, emulation = "xterm-256color"))
+        profiles.update(profile.copy(fontSize = TERMINAL_FONT_SP, emulation = "xterm-256color"))
+        prefs.edit().putInt("layoutVersion", LAYOUT_VERSION).apply()
         val existing = hosts.getHosts().find { it.nickname == "Windows" }
         val host = hosts.saveHost(Host(id = existing?.id ?: 0, nickname = "Windows", hostname = hostname, port = port,
             username = user, pubkeyId = key.id, hostKeyAlgo = "ssh-ed25519", stayConnected = true,
@@ -198,6 +203,18 @@ class BridgeActivity : AppCompatActivity() {
         hosts.saveKnownHost(host, hostname, port, "ssh-ed25519", raw)
         withContext(dispatchers.io) { check(prefs.edit().putLong("host", host.id).commit()) { "Could not save connection" } }
         return host
+    }
+
+    /**
+     * Older installs saved a 13sp font, which gives only ~49 columns in
+     * portrait: nano's two-line help bar wraps and PowerShell output folds.
+     * 10sp gives ~63 columns portrait and ~138 landscape. Runs once.
+     */
+    private suspend fun migrateLayout(host: Host) {
+        if (prefs.getInt("layoutVersion", 0) >= LAYOUT_VERSION) return
+        val profile = host.profileId?.let { profiles.getById(it) } ?: profiles.getDefault()
+        profiles.update(profile.copy(fontSize = TERMINAL_FONT_SP, emulation = "xterm-256color"))
+        withContext(dispatchers.io) { prefs.edit().putInt("layoutVersion", LAYOUT_VERSION).commit() }
     }
 
     private fun open(host: Host) {

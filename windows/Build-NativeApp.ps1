@@ -50,7 +50,7 @@ try {
     & "$app\gradlew.bat" -p $app @tasks --console=plain --no-configuration-cache
     if($LASTEXITCODE -ne 0){throw "Android $Action failed"}
     if($Action -eq 'Release') {
-        $destination=Join-Path $project 'dist\PowerShell-Connect-2.0.1.apk'
+        $destination=Join-Path $project 'dist\PowerShell-Connect-2.0.2.apk'
         New-Item -ItemType Directory -Force (Split-Path $destination) | Out-Null
         Copy-Item -LiteralPath "$app\app\build\outputs\apk\oss\release\app-oss-release.apk" -Destination $destination -Force
         (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash | Set-Content "$destination.sha256"

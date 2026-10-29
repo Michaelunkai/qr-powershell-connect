@@ -12,3 +12,16 @@ runtime-*.log
 *.p12
 *.jks
 android-app/.kotlin/
+# Build outputs and local machine state
+*.apk
+*.aab
+*.log
+.gradle/
+local.properties
+keystore.properties
+android-signing.json
+authorized_keys
+*.pub
+id_*
+.env
+.env.*
